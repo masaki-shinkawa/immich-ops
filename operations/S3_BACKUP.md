@@ -11,9 +11,17 @@
 The DB is queried read-only to find originals and their recorded sizes. Some originals are referenced from `encoded-video`; use DB paths rather than excluding a directory by name.
 The inventory and symlink staging tree live in `~/.local/state/immich-s3-backup`, outside Git. The symlinks avoid duplicating the media files; the AWS CLI uploads their target contents.
 
-## Initial backup already running
+## Status checks and initial transfer history
 
-The first run uses the installed script at `~/.local/libexec/immich-s3-backup.py`, launched as a transient user service. Do not replace its inventory, staging tree, or installed script while it runs.
+For routine checks, run the nonprinting status summary from the repository root:
+
+```bash
+python3 .agents/skills/immich-s3-ops/scripts/check_status.py
+```
+
+Read [HANDOFF.md](HANDOFF.md) for the dated operational snapshot. Always refresh live state before reporting it.
+
+The first run used `~/.local/libexec/immich-s3-backup.py` in a transient user service. That historical service may remain failed after recovery succeeded. The latest `status.json` and daily-run exit code determine current backup status. Do not restart the old installed script. Never replace any active transfer's inventory or staging tree.
 
 ```bash
 systemctl --user status immich-s3-backup
@@ -82,7 +90,7 @@ The monitor adds Standard-class heartbeat PUTs (roughly hourly), a small amount 
 
 ## One-time restore verification
 
-A small already-uploaded image was requested with Bulk retrieval and a one-day temporary restore window. It is independent of the ongoing full backup. An hourly cron job checks `restore-test.json`, waits up to 72 hours, then downloads the restored sample into a private temporary directory, verifies byte length and SHA-256, and removes the local download. This does not modify original media. The S3 restored copy expires automatically; the original archive stays intact.
+A small already-uploaded image was requested with Bulk retrieval and a one-day temporary restore window. It runs independently of the full backup. An hourly cron job checks `restore-test.json`, waits up to 72 hours, then downloads the restored sample into a private temporary directory, verifies byte length and SHA-256, and removes the local download. This does not modify original media. The S3 restored copy expires automatically; the original archive stays intact.
 
 ```bash
 python3 operations/immich-s3-restore-test.py
@@ -93,3 +101,19 @@ State is stored privately in `~/.local/state/immich-s3-backup/restore-test.json`
 ## Incomplete multipart cleanup
 
 The bucket has the rule in `operations/s3-lifecycle.json`: abort incomplete uploads under `originals/` after seven days. Only unfinished parts are removed. Completed archives and local originals are unaffected. A subsequent daily sync retries missing files from the beginning when their local original is still present.
+
+
+## Timeout recovery used during initial transfer
+
+Two videos produced `AWS_ERROR_HTTP_RESPONSE_FIRST_BYTE_TIMEOUT`. `HeadObject` confirmed they were absent at that time. The one-time `immich-s3-recover.service` waited for the initial transfer to finish and invoked the daily wrapper with a private, nonsecret AWS configuration overlay selecting `preferred_transfer_client = classic`, standard retries (10 attempts), concurrency 4, and 64 MB multipart chunks. It completed at 2026-10-21T16:34:10Z. The subsequent daily check also passed.
+
+The overlay was `~/.local/state/immich-s3-backup/recovery-aws-config`; credentials still came from the existing shared credentials file. This was a one-time environment override, not a permanent change to `~/.aws/config` or the daily cron job.
+
+For a requested retry after a similar error, first check affected S3 keys and wait for the current transfer to release the lock. If the existing overlay remains appropriate, invoke:
+
+```bash
+AWS_CONFIG_FILE="$HOME/.local/state/immich-s3-backup/recovery-aws-config" \
+  python3 operations/immich-s3-daily.py
+```
+
+Do not recreate the historical transient service to check status, blindly upload every object, or loop retries indefinitely. If the requested retry fails, preserve the current logs and report the unresolved error. The daily wrapper's final S3 verification, not the absence of new error lines, establishes success.

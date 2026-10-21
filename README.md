@@ -32,7 +32,8 @@ Cloudflare Tunnelのルーティング設定は [CLOUDFLARE_TUNNEL.md](CLOUDFLAR
 
 ## S3バックアップ
 
-[S3バックアップ手順](operations/S3_BACKUP.md)を参照。
+[S3バックアップ手順](operations/S3_BACKUP.md)と[引き継ぎメモ](operations/HANDOFF.md)を参照。
+次のセッションでは `$immich-s3-ops バックアップチェック` で運用スキルを利用できます。
 DBはファイル一覧の取得にのみ使用し、S3へのバックアップ対象は元画像・元動画に限定する。
 毎朝5時（日本時間）にcronで確認し、追加・変更分だけを転送する。S3側の削除は行わない。
 
