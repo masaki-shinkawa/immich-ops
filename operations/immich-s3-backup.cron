@@ -1,0 +1,4 @@
+# BEGIN immich-s3-backup
+# Daily at 05:00 JST; this host's cron timezone is UTC (20:00 UTC).
+0 20 * * * /usr/bin/env PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/python3 /home/ms/packages/nas/immich-app/operations/immich-s3-daily.py
+# END immich-s3-backup

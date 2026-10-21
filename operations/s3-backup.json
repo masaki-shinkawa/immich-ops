@@ -1,0 +1,8 @@
+{
+  "source": "/mnt/photo-backup/immich",
+  "bucket": "immich-backup-362919012960-us-east-1-an",
+  "region": "us-east-1",
+  "profile": "immich-backup",
+  "prefix": "originals/",
+  "storage_class": "DEEP_ARCHIVE"
+}

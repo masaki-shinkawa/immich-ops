@@ -11,6 +11,9 @@ ImmichのDocker Compose、HDD運用、S3バックアップの設定とスクリ�
 - `operations/immich-storage-check`: メディアディスクの検査
 - `operations/immich-s3-inventory.py`: DBを読み取り、元ファイル一覧を生成
 - `operations/immich-s3-backup.py`: 元ファイルをS3 Deep Archiveへ転送・確認
+- `operations/immich-s3-daily.py`: 日次の一覧更新・差分転送
+- `operations/s3-backup.json`: バケット・リージョン・プロファイル等の非秘密設定
+- `operations/immich-s3-backup.cron`: 毎朝5時（日本時間）のcron定義
 
 画像・動画、PostgreSQLのデータ、DBダンプ、秘密情報、実行ログ、転送対象一覧は管理対象外。
 
@@ -28,7 +31,7 @@ Cloudflare Tunnelのルーティング設定は [CLOUDFLARE_TUNNEL.md](CLOUDFLAR
 
 [S3バックアップ手順](operations/S3_BACKUP.md)を参照。
 DBはファイル一覧の取得にのみ使用し、S3へのバックアップ対象は元画像・元動画に限定する。
-自動の定期実行は未設定。
+毎朝5時（日本時間）にcronで確認し、追加・変更分だけを転送する。S3側の削除は行わない。
 
 `prepare-photo-disk.sh` と `cutover-photo-disk.sh` は完了済みのHDD移行の記録。
 稼働環境で再実行しない。

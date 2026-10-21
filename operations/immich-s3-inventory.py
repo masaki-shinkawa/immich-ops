@@ -1,30 +1,18 @@
 #!/usr/bin/env python3
 """Build an original-file inventory from read-only Immich database queries."""
 import argparse
-import fcntl
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 
-STATE = Path.home() / '.local/state/immich-s3-backup'
+from immich_s3_common import STATE, CONFIG, BackupBusy, backup_lock
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--source', type=Path, default=Path('/mnt/photo-backup/immich'))
-    parser.add_argument('--bucket', default='immich-backup-362919012960-us-east-1-an')
-    args = parser.parse_args()
+def build_inventory(source, bucket):
     os.umask(0o077)
-    STATE.mkdir(parents=True, exist_ok=True)
-    active = subprocess.run(['systemctl', '--user', 'is-active', '--quiet',
-                             'immich-s3-backup.service'], check=False)
-    if active.returncode == 0:
-        raise RuntimeError('Backup is running; do not replace its inventory')
-    lock = (STATE / 'backup.lock').open('a')
-    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    source = args.source.resolve(strict=True)
+    source = source.resolve(strict=True)
     sql = '''SELECT coalesce(json_agg(t), '[]'::json) FROM (
         SELECT a."originalPath" AS path, e."fileSizeInByte" AS bytes
         FROM asset a LEFT JOIN asset_exif e ON e."assetId" = a.id
@@ -51,13 +39,7 @@ def main():
         if str(rel) in objects and objects[str(rel)] != row['bytes']:
             raise ValueError('Conflicting duplicate source path')
         objects[str(rel)] = row['bytes']
-    # The upload runner checks that staging links exactly match this inventory.
-    stage = STATE / 'originals'
-    if stage.exists():
-        staged = {str(p.relative_to(stage)) for p in stage.rglob('*') if p.is_symlink()}
-        if staged - objects.keys():
-            raise RuntimeError('Staging contains old paths; archive the staging directory before refreshing')
-    manifest = {'source': str(source), 'bucket': args.bucket,
+    manifest = {'source': str(source), 'bucket': bucket,
                 'objects': [{'path': p, 'bytes': size} for p, size in objects.items()]}
     tmp = STATE / 'manifest.tmp'
     tmp.write_text(json.dumps(manifest))
@@ -68,9 +50,21 @@ def main():
     return 0
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source', type=Path, default=Path(CONFIG['source']))
+    parser.add_argument('--bucket', default=CONFIG['bucket'])
+    args = parser.parse_args()
+    with backup_lock():
+        return build_inventory(args.source, args.bucket)
+
+
 def entrypoint():
     try:
         return main()
+    except BackupBusy as exc:
+        print(f'Skipped: {exc}')
+        return 0
     except Exception as exc:
         print(str(exc), file=sys.stderr)
         return 1
