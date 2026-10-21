@@ -4,5 +4,11 @@
   "region": "us-east-1",
   "profile": "immich-backup",
   "prefix": "originals/",
-  "storage_class": "DEEP_ARCHIVE"
+  "storage_class": "DEEP_ARCHIVE",
+  "monitor": {
+    "heartbeat_key": "monitor/latest.json",
+    "topic_arn": "arn:aws:sns:us-east-1:362919012960:immich-backup-alerts",
+    "stale_after_hours": 36,
+    "cloud_check_time_jst": "07:00"
+  }
 }

@@ -1,0 +1,112 @@
+{
+  "region": "us-east-1",
+  "topic_arn": "arn:aws:sns:us-east-1:362919012960:immich-backup-alerts",
+  "function": {
+    "name": "immich-backup-watchdog",
+    "arn": "arn:aws:lambda:us-east-1:362919012960:function:immich-backup-watchdog",
+    "runtime": "python3.14",
+    "handler": "backup_watchdog.handler",
+    "architecture": "arm64",
+    "timeout_seconds": 30,
+    "memory_mib": 128,
+    "code_s3_key": "monitor/watchdog.zip",
+    "log_retention_days": 14,
+    "environment": {
+      "BUCKET": "immich-backup-362919012960-us-east-1-an",
+      "HEARTBEAT_KEY": "monitor/latest.json",
+      "TOPIC_ARN": "arn:aws:sns:us-east-1:362919012960:immich-backup-alerts",
+      "STALE_HOURS": "36",
+      "WATCH_STARTED_AT": "2026-10-21T16:01:21.750297+00:00"
+    }
+  },
+  "schedule": {
+    "group": "immich-ops",
+    "name": "immich-backup-daily-health",
+    "expression": "cron(0 7 * * ? *)",
+    "timezone": "Asia/Tokyo",
+    "flexible_window": "OFF"
+  },
+  "lambda_role": {
+    "name": "ImmichBackupWatchdogLambda",
+    "trust": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "lambda.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    },
+    "permissions": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::immich-backup-362919012960-us-east-1-an/monitor/latest.json"
+        },
+        {
+          "Effect": "Allow",
+          "Action": "sns:Publish",
+          "Resource": "arn:aws:sns:us-east-1:362919012960:immich-backup-alerts"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          "Resource": "arn:aws:logs:us-east-1:362919012960:log-group:/aws/lambda/immich-backup-watchdog:*"
+        }
+      ]
+    }
+  },
+  "scheduler_role": {
+    "name": "ImmichBackupWatchdogScheduler",
+    "trust": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "scheduler.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole",
+          "Condition": {
+            "StringEquals": {
+              "aws:SourceAccount": "362919012960",
+              "aws:SourceArn": "arn:aws:scheduler:us-east-1:362919012960:schedule-group/immich-ops"
+            }
+          }
+        }
+      ]
+    },
+    "permissions": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "lambda:InvokeFunction",
+          "Resource": "arn:aws:lambda:us-east-1:362919012960:function:immich-backup-watchdog"
+        }
+      ]
+    }
+  },
+  "user_alert_permissions": {
+    "user": "immich-backup",
+    "policy_name": "ImmichBackupAlerts",
+    "document": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "sns:Publish",
+          "Resource": "arn:aws:sns:us-east-1:362919012960:immich-backup-alerts"
+        }
+      ]
+    }
+  }
+}

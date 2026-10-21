@@ -1,4 +1,7 @@
 # BEGIN immich-s3-backup
 # Daily at 05:00 JST; this host's cron timezone is UTC (20:00 UTC).
 0 20 * * * /usr/bin/env PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/python3 /home/ms/packages/nas/immich-app/operations/immich-s3-daily.py
+# Hourly local heartbeat/failure reporting and the one-time restore verification.
+35 * * * * /usr/bin/env PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/python3 /home/ms/packages/nas/immich-app/operations/immich_s3_monitor.py >> /home/ms/.local/state/immich-s3-backup/monitor.log 2>&1
+15 * * * * /usr/bin/env PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/python3 /home/ms/packages/nas/immich-app/operations/immich-s3-restore-test.py >> /home/ms/.local/state/immich-s3-backup/restore-test.log 2>&1
 # END immich-s3-backup

@@ -66,3 +66,30 @@ Versioning retains overwritten versions and can increase storage usage.
 Restore original objects to a separate local directory. Since the DB is excluded, original files can be reimported into Immich, but albums, favorites, face assignments, and other DB-only state are not restored. Do not write restored files directly into a running Immich media tree.
 
 References: [S3 pricing](https://aws.amazon.com/s3/pricing/), [archival storage](https://docs.aws.amazon.com/AmazonS3/latest/userguide/archival-storage.html).
+
+## Monitoring and alerts
+
+- Every real daily run publishes a small Standard-class JSON object at `monitor/latest.json`; a separate hourly cron job also reports the initial transfer's state and detects failures outside the wrapper.
+- The heartbeat contains only timestamps and backup/restore state. No file names, media, credentials, DB contents, or raw error messages are sent.
+- Failures send an SNS alert immediately when observed locally. Repeated hourly reports of the same failure are suppressed.
+- An independent Lambda watchdog, scheduled by EventBridge Scheduler at **07:00 JST daily**, reads the heartbeat. It alerts for failed backup/restore state, unreadable status, or **more than 36 hours without a successful backup**. It works even when the NAS is off. Because this check is daily, detection can occur up to a day after the 36-hour threshold.
+- Heartbeat freshness alone is not success: the last completed verification time is preserved. A running monitor cannot conceal a broken daily backup.
+- Notification delivery requires an email subscription to the `immich-backup-alerts` SNS topic and the recipient's confirmation. A topic with no confirmed subscriber does not deliver email. The recipient address is not stored in this public repository.
+- Local monitoring logs: `~/.local/state/immich-s3-backup/monitor.log`. AWS Lambda logs are retained for 14 days.
+- Source: `operations/cloud/backup_watchdog.py`; deployed resource names, scoped IAM policies, and settings: `operations/cloud/resources.json`. Credentials stay out of both.
+
+The monitor adds Standard-class heartbeat PUTs (roughly hourly), a small amount of Standard storage, one daily Lambda invocation/Scheduler execution, SNS notifications when needed, and minimal execution logs. These are separate from media storage and the daily LIST cost. It does not retrieve archived images.
+
+## One-time restore verification
+
+A small already-uploaded image was requested with Bulk retrieval and a one-day temporary restore window. It is independent of the ongoing full backup. An hourly cron job checks `restore-test.json`, waits up to 72 hours, then downloads the restored sample into a private temporary directory, verifies byte length and SHA-256, and removes the local download. This does not modify original media. The S3 restored copy expires automatically; the original archive stays intact.
+
+```bash
+python3 operations/immich-s3-restore-test.py
+```
+
+State is stored privately in `~/.local/state/immich-s3-backup/restore-test.json`. The checker exits without S3 calls after `complete` or `failed`. Successful verification sends a one-time SNS result message; failures are picked up by the monitor. A pending restore is not a completed test.
+
+## Incomplete multipart cleanup
+
+The bucket has the rule in `operations/s3-lifecycle.json`: abort incomplete uploads under `originals/` after seven days. Only unfinished parts are removed. Completed archives and local originals are unaffected. A subsequent daily sync retries missing files from the beginning when their local original is still present.

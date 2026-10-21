@@ -13,7 +13,10 @@ ImmichのDocker Compose、HDD運用、S3バックアップの設定とスクリ�
 - `operations/immich-s3-backup.py`: 元ファイルをS3 Deep Archiveへ転送・確認
 - `operations/immich-s3-daily.py`: 日次の一覧更新・差分転送
 - `operations/s3-backup.json`: バケット・リージョン・プロファイル等の非秘密設定
-- `operations/immich-s3-backup.cron`: 毎朝5時（日本時間）のcron定義
+- `operations/immich-s3-backup.cron`: 日次バックアップと毎時の監視・復元確認
+- `operations/immich_s3_monitor.py`: 状態送信と失敗通知
+- `operations/cloud/`: サーバー停止時も動くAWS側の監視関数と設定
+- `operations/s3-lifecycle.json`: 7日経過した未完了アップロードの掃除
 
 画像・動画、PostgreSQLのデータ、DBダンプ、秘密情報、実行ログ、転送対象一覧は管理対象外。
 

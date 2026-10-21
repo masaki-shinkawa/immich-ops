@@ -7,3 +7,6 @@
 - `operations/prepare-photo-disk.sh` and `operations/cutover-photo-disk.sh` are historical migration records. Do not rerun them on this completed deployment.
 - Daily backup runs via the user crontab at 05:00 JST (20:00 UTC). Keep `operations/immich-s3-backup.cron` and the installed managed block in sync; preserve other jobs. The wrapper holds one lock across inventory, transfer, and verification.
 - Keep nonsecret S3 settings in `operations/s3-backup.json`; credentials remain in the AWS shared credentials file.
+
+- Monitoring uses an hourly local heartbeat and an independent daily AWS check at 07:00 JST; email delivery requires a confirmed SNS subscriber. Never claim notification delivery is active before confirmation.
+- Restore-test state is private runtime data. Do not request additional paid restores when the current test is still pending.

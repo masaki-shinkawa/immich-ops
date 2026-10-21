@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 
 from immich_s3_common import STATE, CONFIG, BackupBusy, backup_lock
+import immich_s3_monitor
 
 
 def load_script(name):
@@ -52,6 +53,12 @@ def main():
         os.dup2(stream.fileno(), 2)
         print(json.dumps({'started_at_utc': now.isoformat(), 'dry_run': args.dry_run}), flush=True)
         result = run(args.dry_run)
+        if not args.dry_run:
+            try:
+                immich_s3_monitor.report()
+            except Exception:
+                print('Backup heartbeat or notification failed; check local monitoring logs.', flush=True)
+                result = 1
         print(json.dumps({'finished_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                           'exit_code': result}), flush=True)
         return result
