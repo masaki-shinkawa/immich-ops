@@ -66,7 +66,7 @@ def report():
                   'A sample original image was restored from Deep Archive and its byte length '
                   'and SHA-256 matched the original. The temporary local download was removed.')
             cache['restore_success_notified_at'] = restore['verified_at']
-        temp = STATE / 'monitor-state.tmp' 
+        temp = STATE / 'monitor-state.tmp'
         temp.write_text(json.dumps(cache)); temp.chmod(0o600); temp.replace(cache_path)
         print(json.dumps({'heartbeat_updated': True, 'failure_alert': bool(failure_id)}), flush=True)
         return 0
