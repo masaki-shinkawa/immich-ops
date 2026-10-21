@@ -1,0 +1,22 @@
+[Unit]
+Description=Immich photo server on photo-backup disk
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+RequiresMountsFor=/mnt/photo-backup
+BindsTo=mnt-photo\x2dbackup.mount docker.service
+PartOf=docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ms/packages/nas/immich-app
+ExecStartPre=/usr/local/libexec/immich-storage-check
+ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up --abort-on-container-exit --pull never --no-build
+ExecStop=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml stop --timeout 120
+Restart=always
+RestartSec=15
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target docker.service

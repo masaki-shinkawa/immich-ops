@@ -1,0 +1,12 @@
+name: immich
+
+services:
+  cloudflared:
+    container_name: immich_cloudflared
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      - immich-server
+    restart: "no" # Restart and mount ordering are managed by immich.service

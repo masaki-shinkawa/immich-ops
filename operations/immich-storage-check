@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+mountpoint -q /mnt/photo-backup
+test "$(findmnt -n -o UUID --mountpoint /mnt/photo-backup)" = b1ffb942-2296-412d-9b00-f7e5a03548d0
+test -d /mnt/photo-backup/immich/upload
+test -f /mnt/photo-backup/immich/upload/.immich

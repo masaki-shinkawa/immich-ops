@@ -1,0 +1,31 @@
+# Secrets and host-specific environment
+.env
+.env.*
+!.env.example
+.aws/
+*.pem
+*.key
+*credentials*
+
+# Live media, database, dumps and migration records
+/library
+/upload/
+/encoded-video/
+/thumbs/
+/postgres/
+/backups/
+/operations/cutover-complete
+/operations/cleanup-complete
+*.sql
+*.sql.gz
+*.dump
+
+# Backup runtime state and local output
+/state/
+/originals/
+manifest*.json
+status.json
+*.log
+__pycache__/
+*.pyc
+.venv/
